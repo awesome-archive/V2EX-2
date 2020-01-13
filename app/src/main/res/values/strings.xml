@@ -9,6 +9,8 @@
     <string name="not_login">未登录</string>
     <string name="click_to_login">点击登录</string>
     <string name="login_success">登录成功</string>
+    <string name="feed_back">反 馈 &amp; 建 议</string>
+    <string name="summary_feed_back">感谢您提出建议</string>
 
     <string name="topic">话 题</string>
     <string name="checked">签 到</string>
@@ -39,11 +41,12 @@
 
     <string name="all_node">所有节点</string>
 
-    <string name="block">屏蔽</string>
-    <string name="report">举报</string>
+    <string name="thanks">感 谢</string>
+    <string name="block">屏 蔽</string>
+    <string name="report">举 报</string>
     <string name="up_vote">赞</string>
     <string name="down_vote">踩</string>
-    <string name="poster">帖主</string>
+    <string name="poster">帖 主</string>
     <string name="loading">加载中. . .</string>
     <string name="no_more">没有更多了 ~ </string>
     <string name="logging_in">登录中</string>
@@ -63,9 +66,13 @@
     <string name="title_activity_settings2">Settings</string>
 
     <string name="general">通 用</string>
+    <string name="font_scale">字体大小</string>
+    <string name="summary_font_scale">字体大小缩放, 相对于默认 APP 默认大小</string>
     <string name="auto_check">自动签到</string>
     <string name="summary_auto_check">每次开启app时自动签到</string>
     <string name="auto_night_theme">自动夜晚主题</string>
+    <string name="use_black_theme">使用纯黑主题</string>
+    <string name="summary_use_black_theme">开启时自动夜间主题时使用黑色主题, 否则使用暗色主题</string>
     <string name="auto_night_time">自动夜间主题时间</string>
     <string name="auto_night_time_default">21:00–7:00</string>
     <string name="summary_auto_night_theme">自动设置为夜晚在指定时间或在黑暗的环境</string>
@@ -79,6 +86,8 @@
     <string name="advanced">高 级</string>
     <string name="home_tab">主页标签</string>
     <string name="summary_home_tab">自定义主页 Tab 以及顺序</string>
+    <string name="ui_scale">UI 缩放</string>
+    <string name="summary_ui_scale">用户界面的缩放</string>
     <string name="topic_created_instead_touched">使用话题创建时间</string>
     <string name="summary_topic_created_instead_touched">显示话题的创建时间代替最后更新时间,仅部分类型话题可用</string>
     <string name="show_detailed_user_info">详细用户信息</string>

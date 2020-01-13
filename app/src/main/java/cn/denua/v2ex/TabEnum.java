@@ -16,9 +16,8 @@ import cn.denua.v2ex.helper.EnumFindHelper;
  */
 public enum TabEnum implements Serializable {
 
-    HOT     ("热 门"),
+    HOT     ("今日热议"),
     LATEST  ("最 新"),
-    CHANGES ("最近更新"),
     TAB     ("tab"),
     FOLLOWING("关 注"),
     MESSAGE ("消 息"),
@@ -32,7 +31,7 @@ public enum TabEnum implements Serializable {
     static final EnumFindHelper<TabEnum, String> sFindHelper =
             new EnumFindHelper<>(TabEnum.class, TabEnum::getTitle);
 
-    TabEnum(String title){
+    TabEnum(String title) {
         this.title = title;
     }
 

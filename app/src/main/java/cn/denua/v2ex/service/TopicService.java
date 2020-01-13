@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import cn.denua.v2ex.Tab;
 import cn.denua.v2ex.TabEnum;
 import cn.denua.v2ex.api.TopicApi;
 import cn.denua.v2ex.http.RetrofitManager;
@@ -51,17 +52,14 @@ public class TopicService extends BaseService<List<Topic>> {
         setResponseListener(topicListener);
     }
 
-    public void getTopic(TabEnum type, int page){
+    public void getTopic(Tab type, int page){
 
-        switch (type){
+        switch (type.getType()){
             case HOT:
                 getHot();
                 break;
             case LATEST:
                 getLatest();
-                break;
-            case CHANGES:
-                getChanges();
                 break;
             case CUSTOM:
                 break;
@@ -77,7 +75,6 @@ public class TopicService extends BaseService<List<Topic>> {
                 break;
         }
     }
-
     public static void  postTopic(IResponsibleView iResponsibleView,
                           String title,
                           String content,
@@ -105,8 +102,17 @@ public class TopicService extends BaseService<List<Topic>> {
 
     private void getTopicByTab(String tab){
 
-        // TODO: 2019/2/13
-//        topicApi.getTopicByTab(tab);
+        topicApi.getTopicByTab(tab)
+                .compose(RxUtil.io2computation())
+                .map(s -> {
+                    if (s.matches(ErrorEnum.ERR_PAGE_NEED_LOGIN.getPattern())){
+                        cancel();
+                        returnFailed(ErrorEnum.ERR_PAGE_NEED_LOGIN);
+                    }
+                    return HtmlUtil.getTopics(s);
+                })
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(mObserver);
     }
 
     private void getHot(){
@@ -146,6 +152,20 @@ public class TopicService extends BaseService<List<Topic>> {
                 .subscribe(new RxObserver2<>(getView(), getResponseListener()));
     }
 
+    public static void getTopicByNode(IResponsibleView view,
+                                      String node,
+                                      int page,
+                                      ResponseListener<List<Topic>> listener){
+
+        topicApi.getTopicsByNode(node, page)
+                .compose(RxUtil.io2computation())
+                .map(s -> {
+                    ErrorEnum.ERR_PAGE_NEED_LOGIN0.check(s);
+                    return HtmlUtil.getTopics(s);
+                })
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new RxObserver2<>(view, listener));
+    }
     public static void getTopicAndReply(IResponsibleView responsibleView,
                                         int topicId,
                                         int page,

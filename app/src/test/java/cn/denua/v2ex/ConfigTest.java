@@ -4,17 +4,13 @@
 
 package cn.denua.v2ex;
 
-import com.blankj.utilcode.constant.TimeConstants;
-import com.blankj.utilcode.util.TimeUtils;
-
 import org.junit.Test;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.text.ParseException;
+import java.util.Arrays;
 import java.util.Locale;
 
-import cn.denua.v2ex.utils.StringUtil;
+import cn.denua.v2ex.utils.TimeUtil;
 
 /*
  * config test
@@ -25,9 +21,14 @@ import cn.denua.v2ex.utils.StringUtil;
 public class ConfigTest {
 
     @Test
-    public void dataFormatTest(){
-        System.out.println(StringUtil.timestampToStr(1272203146L));
-        System.out.println(StringUtil.timestampToStr(System.currentTimeMillis()));
+    public void dataFormatTest() {
+        System.out.println(TimeUtil.isNowBetweenTimeSpanOfDay("08:11", "14:11"));
+        System.out.println(TimeUtil.timestampToStr(1272203146L));
+        System.out.println(TimeUtil.timestampToStr(System.currentTimeMillis()));
+    }
+
+    @Test
+    public void test1(){
     }
 
     @Test

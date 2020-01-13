@@ -6,20 +6,28 @@ package cn.denua.v2ex;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import com.blankj.utilcode.util.ToastUtils;
 import com.google.gson.Gson;
+import com.tencent.bugly.crashreport.CrashReport;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import cn.denua.v2ex.base.App;
 import cn.denua.v2ex.model.Account;
+import cn.denua.v2ex.utils.TimeUtil;
 
 /*
  * App 配置相关
@@ -29,14 +37,20 @@ import cn.denua.v2ex.model.Account;
  */
 public class Config {
 
-    private static HashMap<ConfigRefEnum, Serializable> CONFIG = new HashMap<>();
+    private static HashMap<ConfigRefEnum, Object> CONFIG = new HashMap<>();
 
     private static Account sAccount;
 
-    static final ArrayList<TabEnum> HOME_TAB_DEFAULT = new ArrayList<TabEnum>(){{
-        add(TabEnum.LATEST);
-        add(TabEnum.HOT);
-        add(TabEnum.CHANGES);
+    /**
+     * 用于配置字体与UI缩放
+     */
+    private static Configuration mConfig;
+
+    public static final ArrayList<Tab> HOME_TAB_DEFAULT = new ArrayList<Tab>(){{
+        add(new Tab(TabEnum.LATEST,TabEnum.LATEST.getTitle(), "最 新"));
+        add(new Tab(TabEnum.HOT, TabEnum.HOT.getTitle(), "热 门"));
+        add(new Tab(TabEnum.TAB,"技 术","tech"));
+        add(new Tab(TabEnum.TAB,"好 玩", "creative"));
     }};
 
     public static final ArrayList<Locale> LOCAL_LIST = new ArrayList<Locale>(){{
@@ -59,7 +73,16 @@ public class Config {
      */
     public static void init(Context context){
 
-        loadConfig(context);
+        if (mConfig == null){
+            mConfig = context.getResources().getConfiguration();
+        }
+        try {
+            loadConfig(context);
+        }catch (Exception e){
+            e.printStackTrace();
+            CrashReport.postCatchedException(e);
+        }
+        setNightTheme();
         restoreAccount();
     }
 
@@ -69,6 +92,12 @@ public class Config {
 
     public static void restoreState(Bundle bundle){
 
+    }
+
+    public static SharedPreferences getConfSP(){
+        return App.getApplication()
+                .getSharedPreferences(
+                        ConfigRefEnum.CONFIG_PREFERENCE_SETTING_FILE.getKey(), Context.MODE_PRIVATE);
     }
 
     @SuppressWarnings("unchecked")
@@ -91,6 +120,9 @@ public class Config {
         CONFIG.put(key, value);
     }
 
+    public static Configuration getConfiguration(){
+        return mConfig;
+    }
     /**
      * 将用户信息 (Account) 以 json 的形式持久化
      *
@@ -120,13 +152,12 @@ public class Config {
         }catch (Exception e){
             e.printStackTrace();
         }
-
     }
 
-    private static void loadConfig(Context context){
+    private static void loadConfig(@NonNull Context context){
 
         SharedPreferences preferences = context.getSharedPreferences(
-                Config.getConfig(ConfigRefEnum.CONFIG_PREFERENCE_SETTING_FILE),
+                (String) Config.getConfig(ConfigRefEnum.CONFIG_PREFERENCE_SETTING_FILE),
                 Context.MODE_PRIVATE);
         Map<String, ?> pref = preferences.getAll();
         for (ConfigRefEnum refEnum:ConfigRefEnum.values()){
@@ -141,14 +172,33 @@ public class Config {
             CONFIG.put(ConfigRefEnum.CONFIG_HOME_TAB, HOME_TAB_DEFAULT);
             return;
         }
-        ArrayList<TabEnum> tabEnums = new ArrayList<>();
+        ArrayList<Tab> tabEnums = new ArrayList<>();
         for (String tab:homeTabs){
-            TabEnum tabEnum = TabEnum.contains(tab)
-                    ? TabEnum.valueOf(tab)
-                    : TabEnum.findByDescriptor(tab);
-            tabEnums.add(tabEnum);
+            Tab tab1 = new Gson().fromJson(tab, Tab.class);
+            tabEnums.add(tab1);
         }
+        Collections.sort(tabEnums);
         CONFIG.put(ConfigRefEnum.CONFIG_HOME_TAB, tabEnums);
+        mConfig.fontScale =
+                mConfig.fontScale * Float.valueOf(Config.getConfig(ConfigRefEnum.CONFIG_FONT_SCALE));
+        mConfig.densityDpi = (int) (mConfig.densityDpi
+                * Float.valueOf(Config.getConfig(ConfigRefEnum.CONFIG_UI_SCALE)));
+    }
+
+    private static void setNightTheme(){
+        if (getConfig(ConfigRefEnum.CONFIG_AUTO_NIGHT_THEME)){
+            String[] autoNightThemeTime =
+                    ((String)getConfig(ConfigRefEnum.CONFIG_AUTO_NIGHT_TIME)).split("_");
+            if (autoNightThemeTime.length == 2
+                    && TimeUtil.isNowBetweenTimeSpanOfDay(
+                            autoNightThemeTime[0], autoNightThemeTime[1])){
+                ToastUtils.showShort(
+                        "黑暗主题已启用, " + autoNightThemeTime[0] + "-" + autoNightThemeTime[1]);
+                String theme = getConfig(ConfigRefEnum.CONFIG_USE_BLACK_THEME)
+                        ? "BlackTheme":"DarkTheme";
+                setConfig(ConfigRefEnum.CONFIG_THEME,theme);
+            }
+        }
     }
 }
 

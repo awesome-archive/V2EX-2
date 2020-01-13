@@ -2,11 +2,7 @@ package cn.denua.v2ex.utils;
 
 import android.content.Context;
 import android.graphics.Color;
-import android.util.Log;
 import android.util.TypedValue;
-
-import com.blankj.utilcode.util.TimeUtils;
-import com.orhanobut.logger.Logger;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -25,7 +21,6 @@ import cn.denua.v2ex.model.Account;
 import cn.denua.v2ex.model.Member;
 import cn.denua.v2ex.model.Node;
 import cn.denua.v2ex.model.Reply;
-import cn.denua.v2ex.model.Tag;
 import cn.denua.v2ex.model.Topic;
 import cn.denua.v2ex.service.V2exException;
 
@@ -56,6 +51,7 @@ public class HtmlUtil {
             PATTERN_TOPIC_AGO_          = Pattern.compile("•?[^•]+?• {2}([^<•]+) {2}•"),
             PATTERN_TOPIC_CLICK         = Pattern.compile(" · (\\d+) 次点击"),
             PATTERN_TOPIC_UP_VOTE       = Pattern.compile("votes\"><li class=\"fa fa-chevron-up\"></li> (\\d+)"),
+            PATTERN_TOPIC_LAST_REPLY    = Pattern.compile("最后回复来自 <strong><a href=\"/member/([\\d\\w]+)"),
 
             PATTERN_REPLY_ID            = Pattern.compile("id=\"r_(\\d+)\""),
             PATTERN_REPLY_USERNAME      = Pattern.compile("href=\"/member/([^\"]+)\""),
@@ -95,13 +91,11 @@ public class HtmlUtil {
 
         Document document = Jsoup.parse(html);
         Elements elements;
-        Node node = Node.getNode();
 
         if (html.contains("TopicsNode")){
             elements = document.select("#TopicsNode >  .cell");
-            node = new Node("","");
         }else {
-            elements = document.select("#Main > .box > .cell");
+            elements = document.selectFirst("#Main > .box").select("> .item");
         }
 
         List<Topic> topics = new ArrayList<>(101);
@@ -115,9 +109,10 @@ public class HtmlUtil {
                 topic = new Topic();
                 String s = element.toString().replaceAll("&nbsp;", " ");
                 topic.setId(matcherGroup1Int(PATTERN_TOPIC_ID, s));
-                topic.setTitle(element.selectFirst(".item_title").text());//fixme null point exception
+                topic.setTitle(element.selectFirst(".item_title").text());
                 topic.setReplies(matcherGroup1Int(PATTERN_TOPIC_REPLY_COUNT_, s));
                 topic.setAgo(matcherGroup1(PATTERN_TOPIC_AGO_, s));
+                topic.setLast_reply_by(matcherGroup1(PATTERN_TOPIC_LAST_REPLY, s));
 
                 member = new Member();
                 member.setUsername(matcherGroup1(PATTERN_TOPIC_USERNAME, s));
@@ -128,8 +123,8 @@ public class HtmlUtil {
                 topic.setMember(member);
                 topics.add(topic);
             }catch (Exception e){
-                System.out.println(element.html());
-                e.printStackTrace();
+                e.addSuppressed(new Throwable(element.html()));
+                throw new V2exException(e);
             }
         }
         return topics;
@@ -148,7 +143,7 @@ public class HtmlUtil {
                 .attr("content")
                 .replaceAll("[TZ]", " ");
 
-        topic.setCreated(StringUtil.strToTimestamp(publishedTime,null));
+        topic.setCreated(TimeUtil.strToTimestamp(publishedTime,null));
         topic.setId(matcherGroup1Int(Pattern.compile("(\\d{2,})"),
                 document.selectFirst("meta[property=og:url]").attr("content")));
         topic.setTitle(header.selectFirst(".header > h1").text());
@@ -169,7 +164,7 @@ public class HtmlUtil {
 
         if (middleEle != null){
             String lastTouched = matcherGroup1(Pattern.compile("直到 ([^+]+)"), middleEle.toString());
-            topic.setLast_touched(lastTouched.isEmpty() ? 0 : StringUtil.strToTimestamp(lastTouched,null));
+            topic.setLast_touched(lastTouched.isEmpty() ? 0 : TimeUtil.strToTimestamp(lastTouched,null));
             topic.setReplies(matcherGroup1Int(PATTERN_TOPIC_REPLY_COUNT, middleEle.toString()));
         }
         topic.setReplyList(getReplies(document, topic.getMember().getUsername()));
@@ -306,17 +301,20 @@ public class HtmlUtil {
         document.head()
                 .append(
                 "<style type=\"text/css\">" +
-                "* {" +
+                "body{width:95%;}" +
+                        "* {" +
                 "   color:" + textColorStr + ";" +
                 "}" +
                 "a {" +
                 "   color:" + linkColorStr + ";" +
+                        "word-wrap:break-word;" +
                 "}" +
                 "code,pre {" +
                 "    color: " + codeColorStr + ";" +
                 "    background: " + codeBackgroundStr + ";" +
                 "    padding: 3px;" +
                 "    border-radius: 5px;" +
+                        "word-wrap:normal;" +
                 "} img { border:1px solid grey;}" +
                 "</style>");
         document.head()

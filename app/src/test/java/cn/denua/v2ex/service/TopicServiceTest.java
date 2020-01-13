@@ -15,6 +15,7 @@ import org.junit.Test;
 
 import java.util.List;
 
+import cn.denua.v2ex.Tab;
 import cn.denua.v2ex.TabEnum;
 import cn.denua.v2ex.api.TopicApi;
 import cn.denua.v2ex.http.RetrofitManager;
@@ -69,10 +70,11 @@ public class TopicServiceTest {
                 System.out.println(result);
             }
             @Override
-            public void onFailed(String msg) {
+            public boolean onFailed(String msg) {
                 System.err.println(msg);
+                return true;
             }
-        }).getTopic(tabEnum,1);
+        }).getTopic(new Tab(TabEnum.NODE,"v2ex","v2ex"),1);
     }
 
     @Test
@@ -80,8 +82,9 @@ public class TopicServiceTest {
 
         TopicService.getTopicAndReply(this.iResponsibleView, 524071,1, new ResponseListener<Topic>() {
             @Override
-            public void onFailed(String msg) {
+            public boolean onFailed(String msg) {
                 System.err.println(msg);
+                return true;
             }
             @Override
             public void onComplete(Topic result) {
@@ -102,8 +105,9 @@ public class TopicServiceTest {
                 }
             }
             @Override
-            public void onFailed(String msg) {
+            public boolean onFailed(String msg) {
                 System.out.println(msg);
+                return true;
             }
         });
     }
@@ -198,6 +202,11 @@ public class TopicServiceTest {
         @Override
         public void onCompleteRequest() {
             System.out.println("TopicServiceTest.onCompleteRequest");
+        }
+
+        @Override
+        public void onFailMsg(String msg) {
+
         }
 
         @Override

@@ -16,7 +16,8 @@ import java.util.Locale;
 import cn.denua.v2ex.Config;
 import cn.denua.v2ex.ConfigRefEnum;
 import cn.denua.v2ex.R;
-import cn.denua.v2ex.utils.StringUtil;
+import cn.denua.v2ex.ui.CustomTabActivity;
+import cn.denua.v2ex.utils.TimeUtil;
 
 /*
  * @author denua
@@ -41,11 +42,11 @@ public class GeneralPreferenceFragment extends PreferenceFragment {
         String[] dateEntries = new String[dateFormatPreference.getEntryValues().length];
         int i = 0;
         for (CharSequence s:dateFormatPreference.getEntryValues()){
-            String date = StringUtil.getDateNow(String.valueOf(s));
+            String date = TimeUtil.getDateNow(String.valueOf(s));
             dateEntries[i++] = date;
         }
         dateFormatPreference.setEntries(dateEntries);
-        dateFormatPreference.setSummary(StringUtil.getDateNow(Config.getConfig(
+        dateFormatPreference.setSummary(TimeUtil.getDateNow(Config.getConfig(
                 ConfigRefEnum.CONFIG_DATE_FORMAT)));
 
         ListPreference localePreference = (ListPreference) findPreference(getString(R.string.key_local));
@@ -63,6 +64,10 @@ public class GeneralPreferenceFragment extends PreferenceFragment {
         Preference clearCachePreference = findPreference(getString(R.string.clear_cache));
         clearCachePreference.setOnPreferenceClickListener(this::clearCache);
         clearCachePreference.setSummary("缓存大小 12 MB");
+        findPreference(getString(R.string.key_home_tabs)).setOnPreferenceClickListener(preference -> {
+            CustomTabActivity.start(getActivity());
+            return false;
+        });
     }
 
 

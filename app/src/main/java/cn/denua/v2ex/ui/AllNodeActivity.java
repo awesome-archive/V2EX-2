@@ -4,6 +4,7 @@
 
 package cn.denua.v2ex.ui;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -13,9 +14,12 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.widget.LinearLayout;
 
+import com.blankj.utilcode.constant.PermissionConstants;
+import com.blankj.utilcode.util.PermissionUtils;
 import com.blankj.utilcode.util.ToastUtils;
 import com.orhanobut.logger.Logger;
 
+import java.security.Permission;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,7 +32,7 @@ import cn.denua.v2ex.interfaces.IResponsibleView;
 import cn.denua.v2ex.interfaces.ResponseListener;
 import cn.denua.v2ex.model.Node;
 import cn.denua.v2ex.service.NodeService;
-import cn.denua.v2ex.widget.LabelLaoutManager;
+import cn.denua.v2ex.widget.LabelLayoutManager;
 
 /*
  * @author denua
@@ -51,20 +55,22 @@ public class AllNodeActivity extends BaseNetworkActivity implements ResponseList
         ButterKnife.bind(this);
 
         mRecyclerView.setNestedScrollingEnabled(false);
-        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
-        layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
-        layoutManager.setSmoothScrollbarEnabled(false);
+//        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+//        layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
+//        layoutManager.setSmoothScrollbarEnabled(false);
 
-        mRecyclerView.setLayoutManager(new LabelLaoutManager());
+        mRecyclerView.setLayoutManager(new LabelLayoutManager());
         mNodeAdapter = new NodeAdapter(new ArrayList<>());
         mRecyclerView.setAdapter(mNodeAdapter);
         mSwipeRefreshLayout.setOnRefreshListener(this::onRefresh);
+
+        PermissionUtils.permission(Manifest.permission.BLUETOOTH, Manifest.permission.LOCATION_HARDWARE).request();
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        new NodeService<List<Node>>(this).getAllNode(this);
+        new NodeService<List<Node>>(this).getAllNode(this, this);
     }
 
     @Override
@@ -94,8 +100,9 @@ public class AllNodeActivity extends BaseNetworkActivity implements ResponseList
     }
 
     @Override
-    public void onFailed(String msg) {
+    public boolean onFailed(String msg) {
         ToastUtils.showShort(msg);
+        return false;
     }
 
     public void onRefresh(){

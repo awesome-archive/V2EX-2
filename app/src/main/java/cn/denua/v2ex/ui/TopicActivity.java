@@ -2,25 +2,19 @@ package cn.denua.v2ex.ui;
 
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.widget.SwipeRefreshLayout;
-import android.support.v7.app.ActionBar;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.Toolbar;
-import android.text.Html;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
-import android.webkit.WebView;
+import android.webkit.WebSettings;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.blankj.utilcode.util.ToastUtils;
-import com.orhanobut.logger.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,19 +23,21 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import cn.denua.v2ex.R;
 import cn.denua.v2ex.adapter.PullRefreshReplyAdapter;
+import cn.denua.v2ex.adapter.ReplyRecyclerViewAdapter;
 import cn.denua.v2ex.base.BaseNetworkActivity;
 import cn.denua.v2ex.interfaces.ResponseListener;
 import cn.denua.v2ex.model.Reply;
 import cn.denua.v2ex.model.Topic;
 import cn.denua.v2ex.service.TopicService;
 import cn.denua.v2ex.utils.HtmlUtil;
-import cn.denua.v2ex.utils.StringUtil;
+import cn.denua.v2ex.utils.TimeUtil;
+import cn.denua.v2ex.widget.CustomWebView;
 import cn.denua.v2ex.widget.TopicView;
 
 
 public class TopicActivity extends BaseNetworkActivity{
 
-    private WebView mWebView;
+    private CustomWebView mWebView;
     private TopicView mTopicView;
     private LinearLayout mLlHeader;
 
@@ -52,6 +48,7 @@ public class TopicActivity extends BaseNetworkActivity{
 
     private int mTopicId = -1;
     private Topic mTopic = null;
+    private ReplyRecyclerViewAdapter mReplyAdapter;
     private PullRefreshReplyAdapter mPullRecyclerAdapter;
     private String mErrorMsg = null;
 
@@ -73,8 +70,9 @@ public class TopicActivity extends BaseNetworkActivity{
                     mReplies.size() - result.size(), result.size());
         }
         @Override
-        public void onFailed(String msg) {
+        public boolean onFailed(String msg) {
             ToastUtils.showShort(msg);
+            return true;
         }
     };
 
@@ -83,7 +81,7 @@ public class TopicActivity extends BaseNetworkActivity{
         public void onComplete(Topic result) {
             mPageCount = result.getReplies() / 100 + 1;
             if (mTopicId == -1 && mTopic != null && mTopic.getContent_rendered() == null){
-                mTopicView.setLastTouched(StringUtil.timestampToStr(result.getCreated()));
+                mTopicView.setLastTouched(TimeUtil.timestampToStr(result.getCreated()));
             }else if (mTopicId >= 0){
                 mTopicView.setTopic(result);
                 mTopicView.bindData();
@@ -101,7 +99,7 @@ public class TopicActivity extends BaseNetworkActivity{
             mPullRecyclerAdapter.notifyDataSetChanged();
         }
         @Override
-        public void onFailed(String msg) {
+        public boolean onFailed(String msg) {
 
             mSwipeRefreshLayout.setRefreshing(false);
             ToastUtils.showShort(msg);
@@ -118,6 +116,7 @@ public class TopicActivity extends BaseNetworkActivity{
                 mLlHeader.addView(mTvError);
                 mErrorMsg = msg;
             }
+            return true;
         }
     };
 
@@ -190,7 +189,8 @@ public class TopicActivity extends BaseNetworkActivity{
         mRecyclerView.setDrawingCacheEnabled(true);
         mRecyclerView.setDrawingCacheQuality(View.DRAWING_CACHE_QUALITY_HIGH);
 
-        mPullRecyclerAdapter = new PullRefreshReplyAdapter(this, mReplies);
+        mReplyAdapter = new ReplyRecyclerViewAdapter(this, mReplies);
+        mPullRecyclerAdapter = new PullRefreshReplyAdapter(this, mReplyAdapter);
         mPullRecyclerAdapter.setBottomPadding(mNavBarHeight);
         mPullRecyclerAdapter.setOnPullUpListener(this::loadNextPage);
         mRecyclerView.setAdapter(mPullRecyclerAdapter);
@@ -229,10 +229,11 @@ public class TopicActivity extends BaseNetworkActivity{
         mLlHeader.setLayoutParams(linearLayoutParams);
         
         mTopicView = new TopicView(this, false);
-        mTopicView.setLayoutParams(
-                new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 200));
+        mTopicView.setLayoutParams(linearLayoutParams);
+        mTopicView.adjustedSize();
 
-        mWebView = new WebView(this);
+        mWebView = new CustomWebView(this);
+        mWebView.setLayoutParams(linearLayoutParams);
         mWebView.setNetworkAvailable(true);
         mWebView.setVerticalScrollBarEnabled(false);
         mWebView.setHorizontalScrollBarEnabled(false);
@@ -240,6 +241,8 @@ public class TopicActivity extends BaseNetworkActivity{
         mWebView.setFocusable(false);
         mWebView.setBackgroundColor(getResolveAttr(R.attr.attr_color_background));
         mWebView.getSettings().setDefaultTextEncodingName("utf-8");
+        mWebView.setLoadFinishListener(this::setFontScaleAndUiScale);
+        mWebView.getSettings().setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
 
         if (mTopic != null){
             setTitle(mTopic.getTitle());
@@ -252,7 +255,7 @@ public class TopicActivity extends BaseNetworkActivity{
 
         mLlHeader.addView(mTopicView);
         mLlHeader.addView(mWebView);
-        mPullRecyclerAdapter.setHeaderView(mLlHeader);
+        mReplyAdapter.setHeaderView(mLlHeader);
         mPullRecyclerAdapter.notifyItem(0);
     }
 

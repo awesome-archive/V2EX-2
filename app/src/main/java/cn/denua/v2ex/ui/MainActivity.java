@@ -5,6 +5,8 @@
 package cn.denua.v2ex.ui;
 
 import android.content.Intent;
+import android.content.res.Configuration;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.support.annotation.NonNull;
@@ -25,24 +27,34 @@ import android.widget.TextView;
 import com.blankj.utilcode.util.ToastUtils;
 import com.bumptech.glide.Glide;
 import com.orhanobut.logger.Logger;
+import com.tencent.bugly.crashreport.CrashReport;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import cn.denua.v2ex.ConfigRefEnum;
 import cn.denua.v2ex.R;
+import cn.denua.v2ex.Tab;
 import cn.denua.v2ex.TabEnum;
 import cn.denua.v2ex.adapter.MainPagerAdapter;
+import cn.denua.v2ex.adapter.TabSelectAdapter;
 import cn.denua.v2ex.base.BaseNetworkActivity;
 import cn.denua.v2ex.fragment.TopicFragment;
 import cn.denua.v2ex.http.RetrofitManager;
 import cn.denua.v2ex.interfaces.ResponseListener;
 import cn.denua.v2ex.model.Account;
+import cn.denua.v2ex.model.Node;
+import cn.denua.v2ex.service.RxObserver;
 import cn.denua.v2ex.service.UserService;
 import cn.denua.v2ex.Config;
 import cn.denua.v2ex.utils.DialogUtil;
+import io.reactivex.Observable;
 
 @SuppressWarnings("RedundantCast")
 public class MainActivity extends BaseNetworkActivity implements NavigationView.OnNavigationItemSelectedListener {
@@ -89,7 +101,11 @@ public class MainActivity extends BaseNetworkActivity implements NavigationView.
         mAccount = Config.getAccount();
         ButterKnife.bind(this);
         initView();
-        checkLoginAndSignStatus();
+        if (mAccount.isLogin()){
+            checkDailySignIn();
+        }else{
+            checkLoginAndSignStatus();
+        }
     }
 
     protected void initView(){
@@ -99,8 +115,8 @@ public class MainActivity extends BaseNetworkActivity implements NavigationView.
         toolbar.inflateMenu(R.menu.menu_toolbar_main);
         tabLayout.setupWithViewPager(viewPager);
 
-        ArrayList<TabEnum> tabEnums = Config.getConfig(ConfigRefEnum.CONFIG_HOME_TAB);
-        for (TabEnum s:tabEnums){
+        ArrayList<Tab> tabEnums = Config.getConfig(ConfigRefEnum.CONFIG_HOME_TAB);
+        for (Tab s:tabEnums){
             tabLayout.addTab(tabLayout.newTab());
             topicFragments.add(TopicFragment.create(s));
         }
@@ -124,6 +140,8 @@ public class MainActivity extends BaseNetworkActivity implements NavigationView.
         ivUserPic.setOnClickListener(v -> {
             if (!mAccount.isLogin()){
                 onNavItemUserStatusClick();
+            }else{
+                UserDetailActivity.start(this, mAccount);
             }
         });
         tvUserName.setOnClickListener(v -> {
@@ -157,13 +175,7 @@ public class MainActivity extends BaseNetworkActivity implements NavigationView.
     protected void onResume() {
         super.onResume();
 
-//        if (!PermissionUtils.isGranted("android.permission.WRITE_EXTERNAL_STORAGE")){
-//            DialogUtil.showMessage(this,
-//                    getString(R.string.alert),
-//                    getString(R.string.need_storage_permission),
-//                    value -> PermissionUtils.launchAppDetailsSettings());
-//        }
-
+        setUserStatus();
         updateMenu();
     }
 
@@ -181,6 +193,12 @@ public class MainActivity extends BaseNetworkActivity implements NavigationView.
         }else{
             if ((System.currentTimeMillis() - mLatestBackPressed) < 1000){
                 finish();
+                Observable.timer(500, TimeUnit.MILLISECONDS).subscribe(new RxObserver<Long>() {
+                    @Override
+                    public void _onNext(Long aLong) {
+                        System.exit(0);
+                    }
+                });
             }else{
                 mLatestBackPressed = System.currentTimeMillis();
                 ToastUtils.showShort("再按一次返回键退出");
@@ -229,6 +247,9 @@ public class MainActivity extends BaseNetworkActivity implements NavigationView.
             case R.id.it_login_out:
                 onNavItemUserStatusClick();
                 break;
+            case R.id.it_feedback:
+                feedBack();
+                break;
             default:break;
         }
         drawerLayout.closeDrawer(Gravity.START);
@@ -272,8 +293,9 @@ public class MainActivity extends BaseNetworkActivity implements NavigationView.
                 updateMenu();
             }
             @Override
-            public void onFailed(String msg) {
+            public boolean onFailed(String msg) {
                 ToastUtils.showShort(msg);
+                return true;
             }
         });
     }
@@ -340,7 +362,7 @@ public class MainActivity extends BaseNetworkActivity implements NavigationView.
         if (sSignIn == 0){
             miSignIn.setTitle(R.string.checked);
         }else {
-            miSignIn.setTitle("已连续签到 " + Math.abs(sSignIn) + " 天");
+            miSignIn.setTitle("已签到");
         }
         boolean enabled = sSignIn >= 0;
         TextView tvSignIn =  (TextView) miSignIn.getActionView().findViewById(R.id.tv_badge_msg);
@@ -363,8 +385,9 @@ public class MainActivity extends BaseNetworkActivity implements NavigationView.
 
         UserService.getInfo(new ResponseListener<Account>() {
             @Override
-            public void onFailed(String msg) {
+            public boolean onFailed(String msg) {
                 mAccount.logout();
+                return true;
             }
             @Override
             public void onComplete(Account result) {
@@ -392,9 +415,22 @@ public class MainActivity extends BaseNetworkActivity implements NavigationView.
                 setUserStatus();
             }
             @Override
-            public void onFailed(String msg) {
+            public boolean onFailed(String msg) {
                 ToastUtils.showShort(msg);
+                return true;
             }
+        });
+    }
+
+    private void feedBack(){
+
+        DialogUtil.showInputDialog(this,
+                getString(R.string.feed_back),
+                getString(R.string.summary_feed_back),
+                "", value -> {
+                    if ((null != value) && value.isEmpty()) return;
+                    CrashReport.postCatchedException(new Throwable("Feed back. " + value));
+                    ToastUtils.showShort(getString(R.string.thanks));
         });
     }
 }

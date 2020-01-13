@@ -1,6 +1,10 @@
 package cn.denua.v2ex.base;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.content.Context;
+import android.content.res.Configuration;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.AttrRes;
 import android.support.annotation.CallSuper;
@@ -12,12 +16,16 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.Toast;
 
 import com.blankj.utilcode.util.BarUtils;
 
+import cn.denua.v2ex.App;
 import cn.denua.v2ex.Config;
 import cn.denua.v2ex.ConfigRefEnum;
 import cn.denua.v2ex.R;
@@ -72,18 +80,7 @@ public class BaseActivity extends AppCompatActivity {
     public void setContentView(@LayoutRes int layoutResID) {
         super.setContentView(layoutResID);
         super.setContentView(R.layout.w_layout_act_root);
-
-        mViewRoot = find(R.id.v_root);
-        mToolBarContainer = find(R.id.ll_toolbar);
-        if (!mIsShowToolBar){
-            mViewRoot.removeView(mToolBarContainer);
-        }else{
-            initToolBar();
-        }
-        mFlContainer = find(R.id.fl_root_container);
-        View bar = find(R.id.v_root_top);
-        bar.getLayoutParams().height = mStatusBarHeight;
-        bar.setBackgroundColor(getResolveAttr(R.attr.attr_color_primary_dark));
+        setRootView();
         LayoutInflater.from(this).inflate(layoutResID, mFlContainer,true);
     }
 
@@ -91,6 +88,7 @@ public class BaseActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         this.mInForeground = true;
+        setFontScaleAndUiScale();
     }
 
     @Override
@@ -132,14 +130,6 @@ public class BaseActivity extends AppCompatActivity {
         setTheme(getCurrentThemeId());
     }
 
-    private void initToolBar(){
-
-        mToolBar = find(R.id.ll_toolbar).findViewById(R.id.toolbar);
-        mToolBar.setElevation(5);
-        setSupportActionBar(mToolBar);
-        mToolBar.setNavigationOnClickListener(v -> finish());
-    }
-
     /**
      * 通过当前主题解析 attr 的真实值
      *
@@ -170,7 +160,7 @@ public class BaseActivity extends AppCompatActivity {
         return typedValue.data;
     }
 
-    public int getColorAccent(){
+    protected int getColorAccent(){
 
         TypedValue typedValue = new TypedValue();
         getTheme().resolveAttribute(R.attr.attr_color_accent, typedValue, true);
@@ -190,5 +180,43 @@ public class BaseActivity extends AppCompatActivity {
 
         ViewGroup rootView = (ViewGroup) getWindow().getDecorView().findViewById(android.R.id.content);
         rootView.setPadding(0, getStatusBarHeight(this), 0, 0);
+    }
+
+    /**
+     * 配置字体和ui的缩放
+     */
+    protected void setFontScaleAndUiScale(){
+        onConfigurationChanged(Config.getConfiguration());
+        getResources().updateConfiguration(Config.getConfiguration(), getResources().getDisplayMetrics());
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    /**
+     * 初始化根布局
+     */
+    private void setRootView(){
+        mViewRoot = find(R.id.v_root);
+        mToolBarContainer = find(R.id.ll_toolbar);
+        if (!mIsShowToolBar){
+            mViewRoot.removeView(mToolBarContainer);
+        }else{
+            initToolBar();
+        }
+        mFlContainer = find(R.id.fl_root_container);
+        View bar = find(R.id.v_root_top);
+        bar.getLayoutParams().height = mStatusBarHeight;
+        bar.setBackgroundColor(getResolveAttr(R.attr.attr_color_primary_dark));
+    }
+
+    private void initToolBar(){
+
+        mToolBar = find(R.id.ll_toolbar).findViewById(R.id.toolbar);
+        mToolBar.setElevation(5);
+        setSupportActionBar(mToolBar);
+        mToolBar.setNavigationOnClickListener(v -> finish());
     }
 }
